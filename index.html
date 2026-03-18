@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="dashboard">
+
+    <!-- Top bar: clock + weather -->
+    <header class="top-bar">
+      <div class="widget widget--clock" id="widget-clock">
+        <div class="clock__time" id="clock-time">--:--:--</div>
+        <div class="clock__date" id="clock-date">---</div>
+      </div>
+
+      <div class="widget widget--weather" id="widget-weather">
+        <div class="weather__icon" id="weather-icon">⏳</div>
+        <div class="weather__info">
+          <div class="weather__temp" id="weather-temp">--°C</div>
+          <div class="weather__desc" id="weather-desc">Loading…</div>
+          <div class="weather__location">Baisy-Thy, BE</div>
+        </div>
+      </div>
+
+      <a href="add-link.html" class="btn btn--add" title="Add a new app link">＋ Add app</a>
+    </header>
+
+    <!-- App grid -->
+    <main class="apps-grid" id="apps-grid">
+      <!-- Populated by js/links.js -->
+    </main>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state" hidden>
+      <p>No apps yet. <a href="add-link.html">Add your first one!</a></p>
+    </div>
+
+  </div>
+
+  <script type="module" src="js/clock.js"></script>
+  <script type="module" src="js/weather.js"></script>
+  <script type="module" src="js/links.js"></script>
+</body>
+</html>

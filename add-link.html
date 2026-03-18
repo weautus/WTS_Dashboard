@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add App — Dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="form-page">
+    <a href="index.html" class="back-link">← Dashboard</a>
+
+    <h1>Add an App</h1>
+
+    <form id="add-form" class="add-form" novalidate>
+      <label class="form-field">
+        <span>App name</span>
+        <input
+          type="text"
+          id="field-name"
+          placeholder="My Cool App"
+          maxlength="40"
+          required
+          autocomplete="off"
+        />
+      </label>
+
+      <label class="form-field">
+        <span>URL</span>
+        <input
+          type="url"
+          id="field-url"
+          placeholder="https://github.com/you/repo"
+          required
+          autocomplete="off"
+        />
+      </label>
+
+      <label class="form-field">
+        <span>Emoji</span>
+        <input
+          type="text"
+          id="field-emoji"
+          placeholder="🚀"
+          maxlength="4"
+          autocomplete="off"
+        />
+        <small>One emoji that represents the app</small>
+      </label>
+
+      <div id="form-error" class="form-error" hidden></div>
+
+      <button type="submit" class="btn btn--submit">Save app</button>
+    </form>
+
+    <section class="manage-section">
+      <h2>Saved apps</h2>
+      <ul id="saved-list" class="saved-list"></ul>
+    </section>
+  </div>
+
+  <script type="module" src="js/add-link.js"></script>
+</body>
+</html>
