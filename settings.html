@@ -17,34 +17,57 @@
       <div class="settings-section__header">
         <h2>☁️ Cloud Sync</h2>
         <p class="settings-section__desc">
-          Keep your app list in sync across all your devices using a free
-          <a href="https://jsonbin.io" target="_blank" rel="noopener">JSONBin.io</a> account.
+          Keep your app list in sync across all your devices using a
+          <strong>GitHub Gist</strong> and a personal access token —
+          no extra account needed.
         </p>
       </div>
 
       <div class="settings-callout">
         <strong>How to set up (one time):</strong>
         <ol>
-          <li>Create a free account at <a href="https://jsonbin.io" target="_blank" rel="noopener">jsonbin.io</a></li>
-          <li>Click <strong>Create Bin</strong> and paste: <code>{"apps":[]}</code></li>
-          <li>Copy the <strong>Bin ID</strong> from the URL bar (the part after <code>/b/</code>)</li>
-          <li>Go to <strong>API Keys</strong> in your account and copy your <strong>Master Key</strong></li>
+          <li>
+            Go to
+            <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">
+              github.com/settings/tokens/new
+            </a>
+            <ul>
+              <li>Note: <em>WTS Dashboard sync</em></li>
+              <li>Expiration: your choice (or "No expiration")</li>
+              <li>Scope: tick <strong>gist</strong> only</li>
+              <li>Click <strong>Generate token</strong> and copy it</li>
+            </ul>
+          </li>
+          <li>
+            Create a new Gist at
+            <a href="https://gist.github.com" target="_blank" rel="noopener">gist.github.com</a>
+            <ul>
+              <li>Filename: <code>wts-dashboard.json</code></li>
+              <li>Content: <code>{"apps":[]}</code></li>
+              <li>Click <strong>Create secret gist</strong></li>
+              <li>Copy the <strong>Gist ID</strong> from the URL
+                (<code>gist.github.com/&lt;user&gt;/<strong>abc123…</strong></code>)</li>
+            </ul>
+          </li>
           <li>Paste both below and click <strong>Test &amp; Save</strong></li>
+          <li>Repeat step 3 on every device — the token and Gist ID are stored locally only</li>
         </ol>
       </div>
 
       <form id="sync-form" class="add-form" novalidate>
         <label class="form-field">
-          <span>Bin ID</span>
-          <input type="text" id="field-bin-id" placeholder="64a1b2c3d4e5f67890abcdef"
+          <span>Gist ID</span>
+          <input type="text" id="field-gist-id"
+            placeholder="a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
             autocomplete="off" spellcheck="false" />
         </label>
 
         <label class="form-field">
-          <span>Master API Key</span>
-          <input type="password" id="field-api-key" placeholder="$2a$10$…"
+          <span>Personal Access Token</span>
+          <input type="password" id="field-token"
+            placeholder="github_pat_…"
             autocomplete="off" spellcheck="false" />
-          <small>Stored only in your browser's localStorage — never sent anywhere except JSONBin.</small>
+          <small>Stored only in your browser's localStorage — sent only to the GitHub API.</small>
         </label>
 
         <div id="sync-feedback" class="sync-feedback" hidden></div>
@@ -59,7 +82,7 @@
         <span id="sync-status-icon">☁️</span>
         <div>
           <div id="sync-status-text">Sync active</div>
-          <div class="sync-status-card__sub" id="sync-bin-preview"></div>
+          <div class="sync-status-card__sub" id="sync-gist-preview"></div>
         </div>
       </div>
     </section>
