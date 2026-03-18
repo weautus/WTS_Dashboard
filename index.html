@@ -25,7 +25,14 @@
         </div>
       </div>
 
-      <a href="add-link.html" class="btn btn--add" title="Add a new app link">＋ Add app</a>
+      <div class="top-bar__actions">
+        <div class="sync-indicator" id="sync-indicator" title="Sync status">
+          <span class="sync-indicator__dot" id="sync-dot"></span>
+          <span class="sync-indicator__label" id="sync-label">…</span>
+        </div>
+        <a href="add-link.html" class="btn btn--add" title="Add a new app link">＋ Add app</a>
+        <a href="settings.html" class="btn btn--icon" title="Settings">⚙️</a>
+      </div>
     </header>
 
     <!-- App grid -->
@@ -43,5 +50,6 @@
   <script type="module" src="js/clock.js"></script>
   <script type="module" src="js/weather.js"></script>
   <script type="module" src="js/links.js"></script>
+  <script type="module" src="js/dashboard.js"></script>
 </body>
 </html>

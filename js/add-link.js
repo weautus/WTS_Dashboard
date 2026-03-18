@@ -1,12 +1,17 @@
-// Page: add / manage app links
 import { getApps, saveApps } from './storage.js';
+import { initEmojiPicker } from './emoji-picker.js';
+import { initSync, push } from './sync.js';
 
-const form       = document.getElementById('add-form');
-const nameInput  = document.getElementById('field-name');
-const urlInput   = document.getElementById('field-url');
-const emojiInput = document.getElementById('field-emoji');
-const errorBox   = document.getElementById('form-error');
-const savedList  = document.getElementById('saved-list');
+const form        = document.getElementById('add-form');
+const nameInput   = document.getElementById('field-name');
+const urlInput    = document.getElementById('field-url');
+const emojiInput  = document.getElementById('field-emoji');
+const emojiTrigger = document.getElementById('emoji-trigger');
+const errorBox    = document.getElementById('form-error');
+const savedList   = document.getElementById('saved-list');
+
+// Init emoji picker
+initEmojiPicker(emojiTrigger, emojiInput);
 
 // ---- helpers ----
 
@@ -65,7 +70,7 @@ function renderSavedList() {
 
 // ---- form submit ----
 
-form.addEventListener('submit', (e) => {
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
   clearError();
 
@@ -79,22 +84,33 @@ form.addEventListener('submit', (e) => {
   const apps = getApps();
   apps.push({ name, url, emoji });
   saveApps(apps);
+  await push();
 
+  // Reset form
   form.reset();
+  emojiInput.value    = '🔗';
+  emojiTrigger.textContent = '🔗';
+  emojiTrigger.classList.remove('emoji-trigger--selected');
+
   renderSavedList();
 });
 
 // ---- delete ----
 
-savedList.addEventListener('click', (e) => {
+savedList.addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-index]');
   if (!btn) return;
   const index = Number(btn.dataset.index);
   const apps  = getApps();
   apps.splice(index, 1);
   saveApps(apps);
+  await push();
   renderSavedList();
 });
 
-// ---- init ----
-renderSavedList();
+// ---- init: pull from remote, then render ----
+
+(async () => {
+  await initSync();
+  renderSavedList();
+})();
