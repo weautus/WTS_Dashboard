@@ -1,6 +1,5 @@
-import { getSyncConfig, saveSyncConfig, clearSyncConfig, testConnection } from './sync.js';
+import { getSyncConfig, clearSyncConfig, isSyncConfigured, testConnection } from './sync.js';
 
-const gistIdInput = document.getElementById('field-gist-id');
 const tokenInput  = document.getElementById('field-token');
 const form        = document.getElementById('sync-form');
 const feedback    = document.getElementById('sync-feedback');
@@ -8,8 +7,7 @@ const btnSave     = document.getElementById('btn-save');
 const btnClear    = document.getElementById('btn-clear');
 const statusCard  = document.getElementById('sync-status-card');
 const statusText  = document.getElementById('sync-status-text');
-const statusIcon  = document.getElementById('sync-status-icon');
-const gistPreview = document.getElementById('sync-gist-preview');
+const syncDetail  = document.getElementById('sync-detail');
 
 function showFeedback(msg, type) {
   feedback.textContent = msg;
@@ -17,20 +15,14 @@ function showFeedback(msg, type) {
   feedback.hidden      = false;
 }
 
-function hideFeedback() {
-  feedback.hidden = true;
-}
-
-function renderCurrentConfig() {
+function render() {
   const cfg = getSyncConfig();
-  if (cfg?.gistId && cfg?.token) {
-    gistIdInput.value = cfg.gistId;
-    tokenInput.value  = cfg.token;
-    statusCard.hidden  = false;
-    btnClear.hidden    = false;
-    statusIcon.textContent = '✅';
+  if (cfg?.token) {
+    tokenInput.value    = cfg.token;
+    statusCard.hidden   = false;
+    btnClear.hidden     = false;
     statusText.textContent = 'Sync is active';
-    gistPreview.textContent = `Gist: …${cfg.gistId.slice(-8)}`;
+    syncDetail.textContent = cfg.gistId ? `Gist: …${cfg.gistId.slice(-8)}` : 'Gist will be resolved on next sync';
   } else {
     statusCard.hidden = true;
     btnClear.hidden   = true;
@@ -39,28 +31,22 @@ function renderCurrentConfig() {
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  hideFeedback();
+  feedback.hidden = true;
 
-  const gistId = gistIdInput.value.trim();
-  const token  = tokenInput.value.trim();
-
-  if (!gistId || !token) {
-    showFeedback('Please fill in both fields.', 'error');
-    return;
-  }
+  const token = tokenInput.value.trim();
+  if (!token) { showFeedback('Please paste your token.', 'error'); return; }
 
   btnSave.disabled    = true;
-  btnSave.textContent = 'Testing…';
+  btnSave.textContent = 'Connecting…';
 
-  const result = await testConnection(gistId, token);
+  const result = await testConnection(token);
 
   btnSave.disabled    = false;
-  btnSave.textContent = 'Test & Save';
+  btnSave.textContent = 'Connect';
 
   if (result.ok) {
-    saveSyncConfig({ gistId, token });
     showFeedback('✅ ' + result.msg, 'ok');
-    renderCurrentConfig();
+    render();
   } else {
     showFeedback('❌ ' + result.msg, 'error');
   }
@@ -69,11 +55,10 @@ form.addEventListener('submit', async (e) => {
 btnClear.addEventListener('click', () => {
   if (!confirm('Disconnect sync? Your local app list will not be deleted.')) return;
   clearSyncConfig();
-  gistIdInput.value = '';
-  tokenInput.value  = '';
-  hideFeedback();
-  renderCurrentConfig();
+  tokenInput.value = '';
+  feedback.hidden  = true;
+  render();
   showFeedback('Sync disconnected.', 'info');
 });
 
-renderCurrentConfig();
+render();

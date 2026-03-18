@@ -1,33 +1,23 @@
-// Sync module — persists app list to a GitHub Gist so all devices stay in sync.
-//
-// Setup (one-time):
-//  1. Go to https://github.com/settings/tokens/new
-//     - Note: "WTS Dashboard sync"
-//     - Expiration: No expiration (or as you prefer)
-//     - Scope: check only "gist"
-//     - Click "Generate token" and copy it
-//  2. Create a new Gist at https://gist.github.com
-//     - Filename: wts-dashboard.json
-//     - Content: {"apps":[]}
-//     - You can make it secret (not public)
-//     - Click "Create secret gist" and copy the Gist ID from the URL
-//  3. Enter both in the Dashboard Settings page (settings.html)
+// Sync module — GitHub Gist backend.
+// The user only provides a PAT (gist scope). The app finds or creates
+// the dedicated gist automatically.
 
 import { getApps, saveApps } from './storage.js';
 
-const CONFIG_KEY   = 'wts_sync_config';   // {gistId, token}
+const CONFIG_KEY   = 'wts_sync_config';   // { token, gistId }
 const GIST_FILE    = 'wts-dashboard.json';
-const API_BASE     = 'https://api.github.com/gists';
-const STATUS_EVENT = 'wts:syncstatus';    // detail: {status:'idle'|'syncing'|'ok'|'error', msg?}
+const GIST_DESC    = 'WTS Dashboard sync';
+const API          = 'https://api.github.com';
+const STATUS_EVENT = 'wts:syncstatus';
 
-// ---- config helpers ----
+// ---- config ----
 
 export function getSyncConfig() {
   try { return JSON.parse(localStorage.getItem(CONFIG_KEY) || 'null'); }
   catch { return null; }
 }
 
-export function saveSyncConfig(cfg) {
+function saveSyncConfig(cfg) {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
 }
 
@@ -36,43 +26,77 @@ export function clearSyncConfig() {
 }
 
 export function isSyncConfigured() {
-  const cfg = getSyncConfig();
-  return !!(cfg?.gistId && cfg?.token);
+  return !!getSyncConfig()?.token;
 }
 
-// ---- status events ----
+// ---- status ----
 
 function emit(status, msg) {
   window.dispatchEvent(new CustomEvent(STATUS_EVENT, { detail: { status, msg } }));
 }
 
-// ---- headers ----
-
-function headers(token) {
-  return {
-    'Accept':        'application/vnd.github+json',
-    'Authorization': `Bearer ${token}`,
-    'X-GitHub-Api-Version': '2022-11-28',
-  };
+export function onSyncStatus(cb) {
+  window.addEventListener(STATUS_EVENT, e => cb(e.detail));
 }
 
-// ---- remote operations ----
+// ---- GitHub helpers ----
 
-/** Fetch remote apps list. Returns array or null on failure. */
+function gh(path, token, opts = {}) {
+  return fetch(`${API}${path}`, {
+    ...opts,
+    headers: {
+      'Accept':               'application/vnd.github+json',
+      'Authorization':        `Bearer ${token}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Content-Type':         'application/json',
+      ...(opts.headers ?? {}),
+    },
+  });
+}
+
+/** Find our gist or create it. Returns gistId or throws. */
+async function resolveGistId(token) {
+  // Check cache first
+  const cached = getSyncConfig();
+  if (cached?.gistId) return cached.gistId;
+
+  // Search through user's gists (up to 100)
+  const res = await gh('/gists?per_page=100', token);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const list = await res.json();
+  const found = list.find(g => g.files?.[GIST_FILE]);
+  if (found) {
+    saveSyncConfig({ token, gistId: found.id });
+    return found.id;
+  }
+
+  // Not found → create it
+  const create = await gh('/gists', token, {
+    method: 'POST',
+    body: JSON.stringify({
+      description: GIST_DESC,
+      public: false,
+      files: { [GIST_FILE]: { content: JSON.stringify({ apps: [] }, null, 2) } },
+    }),
+  });
+  if (!create.ok) throw new Error(`Could not create gist (HTTP ${create.status})`);
+  const gist = await create.json();
+  saveSyncConfig({ token, gistId: gist.id });
+  return gist.id;
+}
+
+// ---- public API ----
+
 export async function pull() {
   const cfg = getSyncConfig();
-  if (!cfg) return null;
-
+  if (!cfg?.token) return null;
   emit('syncing');
   try {
-    const res = await fetch(`${API_BASE}/${cfg.gistId}`, {
-      headers: headers(cfg.token),
-    });
+    const gistId = await resolveGistId(cfg.token);
+    const res    = await gh(`/gists/${gistId}`, cfg.token);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const gist = await res.json();
-    const raw  = gist.files?.[GIST_FILE]?.content;
-    if (!raw) throw new Error(`File "${GIST_FILE}" not found in gist.`);
-    const data = JSON.parse(raw);
+    const data = JSON.parse(gist.files[GIST_FILE].content);
     const apps = Array.isArray(data.apps) ? data.apps : [];
     saveApps(apps);
     emit('ok');
@@ -84,24 +108,16 @@ export async function pull() {
   }
 }
 
-/** Push current local apps list to remote. */
 export async function push() {
   const cfg = getSyncConfig();
-  if (!cfg) return;
-
+  if (!cfg?.token) return;
   emit('syncing');
   try {
-    const apps = getApps();
-    const res  = await fetch(`${API_BASE}/${cfg.gistId}`, {
+    const gistId = await resolveGistId(cfg.token);
+    const res    = await gh(`/gists/${gistId}`, cfg.token, {
       method: 'PATCH',
-      headers: {
-        ...headers(cfg.token),
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
-        files: {
-          [GIST_FILE]: { content: JSON.stringify({ apps }, null, 2) },
-        },
+        files: { [GIST_FILE]: { content: JSON.stringify({ apps: getApps() }, null, 2) } },
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -112,42 +128,26 @@ export async function push() {
   }
 }
 
-/** Test credentials — used by the settings page. Returns {ok, msg}. */
-export async function testConnection(gistId, token) {
+/** Validate token and resolve (or create) the gist. Returns { ok, msg }. */
+export async function testConnection(token) {
   try {
-    const res = await fetch(`${API_BASE}/${gistId}`, {
-      headers: headers(token),
-    });
-    if (res.status === 401) return { ok: false, msg: 'Invalid token. Make sure it has the "gist" scope.' };
-    if (res.status === 404) return { ok: false, msg: 'Gist not found. Double-check the Gist ID.' };
-    if (!res.ok)            return { ok: false, msg: `GitHub API error (HTTP ${res.status}).` };
+    const userRes = await gh('/user', token);
+    if (userRes.status === 401) return { ok: false, msg: 'Invalid token — make sure it has the "gist" scope.' };
+    if (!userRes.ok)            return { ok: false, msg: `GitHub error (HTTP ${userRes.status}).` };
+    const user = await userRes.json();
 
-    const gist = await res.json();
-    if (!gist.files?.[GIST_FILE]) {
-      return {
-        ok: false,
-        msg: `Gist found, but missing file "${GIST_FILE}". ` +
-             `Add a file named exactly "${GIST_FILE}" with content {"apps":[]}.`,
-      };
-    }
-    return { ok: true, msg: 'Connection successful!' };
+    // Temporarily store just the token so resolveGistId can cache the result
+    saveSyncConfig({ token });
+    await resolveGistId(token);
+
+    return { ok: true, msg: `Connected as @${user.login}. Gist ready!` };
   } catch (err) {
-    return { ok: false, msg: `Network error: ${err.message}` };
+    clearSyncConfig();
+    return { ok: false, msg: `Error: ${err.message}` };
   }
 }
-
-// ---- status listener helper (used by index.html) ----
-
-export function onSyncStatus(callback) {
-  window.addEventListener(STATUS_EVENT, e => callback(e.detail));
-}
-
-// ---- init: pull on page load if configured ----
 
 export async function initSync() {
-  if (!isSyncConfigured()) {
-    emit('idle');
-    return;
-  }
+  if (!isSyncConfigured()) { emit('idle'); return; }
   await pull();
 }

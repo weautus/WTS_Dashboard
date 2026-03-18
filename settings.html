@@ -12,77 +12,46 @@
 
     <h1>Settings</h1>
 
-    <!-- Sync section -->
     <section class="settings-section">
       <div class="settings-section__header">
         <h2>☁️ Cloud Sync</h2>
         <p class="settings-section__desc">
-          Keep your app list in sync across all your devices using a
-          <strong>GitHub Gist</strong> and a personal access token —
-          no extra account needed.
+          Paste a GitHub token and the dashboard handles everything else —
+          it finds or creates a private Gist automatically.
         </p>
       </div>
 
       <div class="settings-callout">
-        <strong>How to set up (one time):</strong>
+        <strong>One-time setup:</strong>
         <ol>
-          <li>
-            Go to
-            <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">
-              github.com/settings/tokens/new
-            </a>
-            <ul>
-              <li>Note: <em>WTS Dashboard sync</em></li>
-              <li>Expiration: your choice (or "No expiration")</li>
-              <li>Scope: tick <strong>gist</strong> only</li>
-              <li>Click <strong>Generate token</strong> and copy it</li>
-            </ul>
-          </li>
-          <li>
-            Create a new Gist at
-            <a href="https://gist.github.com" target="_blank" rel="noopener">gist.github.com</a>
-            <ul>
-              <li>Filename: <code>wts-dashboard.json</code></li>
-              <li>Content: <code>{"apps":[]}</code></li>
-              <li>Click <strong>Create secret gist</strong></li>
-              <li>Copy the <strong>Gist ID</strong> from the URL
-                (<code>gist.github.com/&lt;user&gt;/<strong>abc123…</strong></code>)</li>
-            </ul>
-          </li>
-          <li>Paste both below and click <strong>Test &amp; Save</strong></li>
-          <li>Repeat step 3 on every device — the token and Gist ID are stored locally only</li>
+          <li>Go to <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">github.com/settings/tokens/new</a></li>
+          <li>Give it any name, tick the <strong>gist</strong> scope, click <strong>Generate token</strong></li>
+          <li>Paste the token below and click <strong>Connect</strong></li>
         </ol>
+        <small>The token is stored only in your browser. Repeat step 3 on each device.</small>
       </div>
 
       <form id="sync-form" class="add-form" novalidate>
         <label class="form-field">
-          <span>Gist ID</span>
-          <input type="text" id="field-gist-id"
-            placeholder="a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
-            autocomplete="off" spellcheck="false" />
-        </label>
-
-        <label class="form-field">
-          <span>Personal Access Token</span>
+          <span>GitHub Personal Access Token</span>
           <input type="password" id="field-token"
             placeholder="github_pat_…"
             autocomplete="off" spellcheck="false" />
-          <small>Stored only in your browser's localStorage — sent only to the GitHub API.</small>
         </label>
 
         <div id="sync-feedback" class="sync-feedback" hidden></div>
 
         <div class="form-row">
-          <button type="submit" class="btn btn--submit" id="btn-save">Test &amp; Save</button>
-          <button type="button" class="btn btn--danger" id="btn-clear" hidden>Disconnect sync</button>
+          <button type="submit" class="btn btn--submit" id="btn-save">Connect</button>
+          <button type="button" class="btn btn--danger" id="btn-clear" hidden>Disconnect</button>
         </div>
       </form>
 
       <div id="sync-status-card" class="sync-status-card" hidden>
-        <span id="sync-status-icon">☁️</span>
+        <span id="sync-status-icon">✅</span>
         <div>
-          <div id="sync-status-text">Sync active</div>
-          <div class="sync-status-card__sub" id="sync-gist-preview"></div>
+          <div id="sync-status-text">Sync is active</div>
+          <div class="sync-status-card__sub" id="sync-detail"></div>
         </div>
       </div>
     </section>
